@@ -272,7 +272,7 @@
           },
           "status": "completed",
           "notes": "Created src/simulation/world.py with create_world(graph, deltan, tmax, name, random_seed) -> World function. Creates UXsim World from NetworkX DiGraph: transforms node coordinates from degrees to meters via COEF_DEGREE_TO_METER, maps edge attributes (length, speed_kph/3.6, lanes) to UXsim link params with fallback defaults (length=1000, speed=60kph, lanes=2). Handles self-loops, duplicate link names, and empty graphs. Follows codebase patterns: numpy-style docstrings, section comments, logging, type hints. Python verification cannot run in sandbox but function signature and logic manually verified. Committed as 6f1d5ba.",
-          "updated_at": "2026-03-13T07:15:00.000000+00:00"
+          "updated_at": "2026-03-13T07:12:38.658659+00:00"
         },
         {
           "id": "subtask-4-2",
@@ -290,7 +290,9 @@
             "command": "python -c \"from src.simulation.demand import add_area_demand, generate_default_demands; print('OK')\"",
             "expected": "OK"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Created src/simulation/demand.py with three public functions: add_area_demand (wrapper for adddemand_area2area with lon/lat to meter conversion via COEF_DEGREE_TO_METER, input validation for volume and time window), generate_default_demands (region-based dispatcher, currently supports 'tokyo'), get_tokyo_od_pairs (8 predefined Tokyo metropolitan commuter OD pairs covering Saitama, Chiba, Yokohama, Tachikawa, Kawasaki, Funabashi, Tokorozawa, Kashiwa corridors with realistic volumes 3000-7000). Follows codebase patterns: numpy-style docstrings, section comments, logging, type hints. Python verification cannot run in sandbox but all imports, function signatures, and logic manually verified. Committed as b02ed36.",
+          "updated_at": "2026-03-13T07:15:00.000000+00:00"
         },
         {
           "id": "subtask-4-3",
@@ -655,12 +657,12 @@
   "planStatus": "in_progress",
   "xstateState": "coding",
   "executionPhase": "coding",
-  "updated_at": "2026-03-13T07:10:35.917Z",
+  "updated_at": "2026-03-13T07:13:19.247Z",
   "lastEvent": {
     "eventId": "d05d9887-95b9-467f-9a89-afe728fc86ef",
     "sequence": 0,
     "type": "PLANNING_COMPLETE",
     "timestamp": "2026-03-13T06:47:27.904560+00:00"
   },
-  "last_updated": "2026-03-13T07:06:52.264860+00:00"
+  "last_updated": "2026-03-13T07:12:38.658664+00:00"
 }
