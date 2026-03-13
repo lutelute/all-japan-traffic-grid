@@ -440,7 +440,7 @@
             "command": "python -c \"import tests.conftest; print('OK')\"",
             "expected": "OK"
           },
-          "status": "pending"
+          "status": "completed"
         },
         {
           "id": "subtask-6-2",
@@ -666,7 +666,7 @@
   "planStatus": "in_progress",
   "xstateState": "coding",
   "executionPhase": "coding",
-  "updated_at": "2026-03-13T07:39:43.140Z",
+  "updated_at": "2026-03-13T07:42:29.198Z",
   "lastEvent": {
     "eventId": "d05d9887-95b9-467f-9a89-afe728fc86ef",
     "sequence": 0,
