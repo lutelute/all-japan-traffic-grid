@@ -1,0 +1,33 @@
+# Auto Claude data directory
+.auto-claude/
+
+# Data directories (large files, not tracked)
+data/raw/
+data/processed/
+data/output/
+
+# Large binary files
+*.pbf
+*.pkl
+
+# Python virtual environment
+.venv/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
