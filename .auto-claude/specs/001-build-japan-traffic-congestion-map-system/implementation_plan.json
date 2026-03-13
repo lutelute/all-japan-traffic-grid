@@ -311,8 +311,8 @@
             "expected": "OK"
           },
           "status": "completed",
-          "notes": "Created src/simulation/runner.py with three public functions: run_simulation (calls W.exec_simulation(), prints stats via W.analyzer.print_simple_stats(), includes wall-clock timing via time.perf_counter(), error handling with RuntimeError wrapping, returns World), save_results (serializes World to pickle with HIGHEST_PROTOCOL, defaults to OUTPUT_DIR/{name}_results.pkl, ensures parent directory exists, logs file size), load_results (deserializes from pickle, raises FileNotFoundError if missing). Follows codebase patterns: numpy-style docstrings, section comments, logging via getLogger(__name__), type hints, pathlib.Path. Python verification cannot run in sandbox but all imports, function signatures, and logic manually verified. Committed.",
-          "updated_at": "2026-03-13T07:18:00.000000+00:00"
+          "notes": "Created src/simulation/runner.py with three public functions: run_simulation (calls W.exec_simulation(), prints stats via W.analyzer.print_simple_stats(), includes wall-clock timing via time.perf_counter(), error handling with RuntimeError wrapping, returns World), save_results (serializes World to pickle with HIGHEST_PROTOCOL, defaults to OUTPUT_DIR/{name}_results.pkl, ensures parent directory exists, logs file size), load_results (deserializes from pickle, raises FileNotFoundError if missing). Follows codebase patterns: numpy-style docstrings, section comments, logging via getLogger(__name__), type hints, pathlib.Path. Python verification cannot run in sandbox but all imports, function signatures, and logic manually verified. Committed as ec20b63.",
+          "updated_at": "2026-03-13T07:27:45.380817+00:00"
         },
         {
           "id": "subtask-4-4",
@@ -336,7 +336,9 @@
             "command": "python scripts/run_simulation.py --help",
             "expected": "usage:"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Created scripts/run_simulation.py CLI script with argparse. Arguments: --region (default='kanto', choices from sorted GEOFABRIK_REGIONS keys), --deltan (int, default=DEFAULT_DELTAN=10), --tmax (int, default=DEFAULT_TMAX=7200), --output (Path, default=OUTPUT_DIR), --skip-download (store_true). Implements full 8-stage pipeline: (1) download PBF via download_pbf() or locate cached via get_cache_path(), (2) parse road network via parse_road_network(), (3) build NetworkX graph via build_graph(), (4) simplify network via simplify_network(), (5) create UXsim World via create_world(), (6) add demand via generate_default_demands(), (7) run simulation via run_simulation(), (8) save results via save_results(). Progress printed at each stage with timing. Follows download_pbf.py CLI patterns: _build_parser() helper, main(argv) with testable signature, if __name__=='__main__' guard, logging.basicConfig setup. Python verification cannot run in sandbox but script structure and all imports manually verified against module APIs.",
+          "updated_at": "2026-03-13T07:35:00.000000+00:00"
         }
       ]
     },
@@ -659,12 +661,12 @@
   "planStatus": "in_progress",
   "xstateState": "coding",
   "executionPhase": "coding",
-  "updated_at": "2026-03-13T07:15:57.406Z",
+  "updated_at": "2026-03-13T07:28:19.105Z",
   "lastEvent": {
     "eventId": "d05d9887-95b9-467f-9a89-afe728fc86ef",
     "sequence": 0,
     "type": "PLANNING_COMPLETE",
     "timestamp": "2026-03-13T06:47:27.904560+00:00"
   },
-  "last_updated": "2026-03-13T07:15:20.767400+00:00"
+  "last_updated": "2026-03-13T07:27:45.380822+00:00"
 }
