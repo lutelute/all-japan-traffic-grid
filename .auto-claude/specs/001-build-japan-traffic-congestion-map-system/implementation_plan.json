@@ -1,0 +1,664 @@
+{
+  "feature": "Build Japan traffic congestion map system",
+  "workflow_type": "feature",
+  "workflow_rationale": "Greenfield project building an entirely new traffic simulation and visualization system from scratch. Every component must be created new — no existing code to refactor or migrate.",
+  "phases": [
+    {
+      "id": "phase-1-scaffolding",
+      "name": "Project Scaffolding",
+      "type": "setup",
+      "description": "Create project directory structure, package configuration, dependency management, and core configuration constants module",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Create pyproject.toml with project metadata, dependencies (uxsim>=1.12.0, pyrosm>=0.6.2, osmnx>=2.1.0, geopandas>=1.0.0, networkx>=3.0, matplotlib>=3.8, folium>=0.15, shapely>=2.0, requests>=2.31, tqdm>=4.66) and dev dependencies (pytest>=8.0, pytest-cov>=5.0, ruff>=0.3). Create requirements.txt with pinned versions. Update .gitignore to exclude data/raw/, data/processed/, data/output/, *.pbf, *.pkl, .venv/, __pycache__/",
+          "service": "traffic-simulation",
+          "files_to_modify": [
+            ".gitignore"
+          ],
+          "files_to_create": [
+            "pyproject.toml",
+            "requirements.txt"
+          ],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"import tomllib; d=tomllib.load(open('pyproject.toml','rb')); print('OK' if 'uxsim' in str(d.get('project',{}).get('dependencies',[])) else 'FAIL')\"",
+            "expected": "OK"
+          },
+          "status": "completed",
+          "notes": "Created pyproject.toml with all 10 core dependencies and 3 dev dependencies, requirements.txt with pinned versions, and updated .gitignore to exclude data dirs, *.pbf, *.pkl, .venv/, __pycache__/. Committed as 69a6f2c. Verification command cannot run in this environment (python not in allowed commands) but file contents manually verified to be correct.",
+          "updated_at": "2026-03-13T06:48:51.057821+00:00"
+        },
+        {
+          "id": "subtask-1-2",
+          "description": "Create src/ package structure with all __init__.py files for src/, src/data/, src/network/, src/simulation/, src/visualization/. Create data/ directories (raw/, processed/, output/) with .gitkeep files. Create scripts/ and tests/ directories with __init__.py. Create notebooks/ directory.",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/__init__.py",
+            "src/data/__init__.py",
+            "src/network/__init__.py",
+            "src/simulation/__init__.py",
+            "src/visualization/__init__.py",
+            "tests/__init__.py",
+            "data/raw/.gitkeep",
+            "data/processed/.gitkeep",
+            "data/output/.gitkeep"
+          ],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"import src; import src.data; import src.network; import src.simulation; import src.visualization; print('OK')\"",
+            "expected": "OK"
+          },
+          "status": "completed",
+          "notes": "Created all __init__.py files for src/, src/data/, src/network/, src/simulation/, src/visualization/, and tests/. Created data/raw/, data/processed/, data/output/ with .gitkeep files (force-added past .gitignore). Created scripts/ and notebooks/ directories with .gitkeep files. Python import verification cannot run in sandbox but all files verified to exist with correct content. Committed as ef87e1a.",
+          "updated_at": "2026-03-13T06:50:58.328101+00:00"
+        },
+        {
+          "id": "subtask-1-3",
+          "description": "Create src/config.py with all configuration constants: PROJECT_ROOT, DATA_DIR, RAW_DIR, PROCESSED_DIR, OUTPUT_DIR (all pathlib.Path); GEOFABRIK_JAPAN_URL and GEOFABRIK_REGIONS dict (8 sub-regions: chubu, chugoku, hokkaido, kansai, kanto, kyushu, shikoku, tohoku); HIGHWAY_FILTER list (8 types: motorway, motorway_link, trunk, trunk_link, primary, primary_link, secondary, secondary_link); JAPAN_LAT_CENTER=36.0, COEF_DEGREE_TO_METER=89799; DEFAULT_DELTAN=10, DEFAULT_TMAX=7200; NODE_MERGE_THRESHOLD=0.005; DEFAULT_SPEED_BY_TYPE and DEFAULT_LANES_BY_TYPE dicts",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/config.py"
+          ],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.config import COEF_DEGREE_TO_METER, HIGHWAY_FILTER, GEOFABRIK_REGIONS, DEFAULT_DELTAN; assert COEF_DEGREE_TO_METER == 89799; assert len(HIGHWAY_FILTER) == 8; assert len(GEOFABRIK_REGIONS) >= 8; assert DEFAULT_DELTAN == 10; print('OK')\"",
+            "expected": "OK"
+          },
+          "status": "completed",
+          "notes": "Created src/config.py with all configuration constants: paths (PROJECT_ROOT, DATA_DIR, RAW_DIR, PROCESSED_DIR, OUTPUT_DIR), Geofabrik URLs (japan + 8 sub-regions), HIGHWAY_FILTER (8 types), JAPAN_LAT_CENTER=36.0, COEF_DEGREE_TO_METER=89799, DEFAULT_DELTAN=10, DEFAULT_TMAX=7200, NODE_MERGE_THRESHOLD=0.005, DEFAULT_SPEED_BY_TYPE and DEFAULT_LANES_BY_TYPE dicts. Python verification cannot run in sandbox but file contents manually verified against spec. Committed as 2e46c16.",
+          "updated_at": "2026-03-13T06:53:16.516116+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-2-data-pipeline",
+      "name": "Data Pipeline",
+      "type": "implementation",
+      "description": "Build data acquisition pipeline: Geofabrik PBF download with retry/progress/checksum, local file caching, and Pyrosm PBF parsing with highway type filtering",
+      "depends_on": [
+        "phase-1-scaffolding"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Create src/data/cache.py with functions: get_cache_path(region, suffix) -> Path, is_cached(path) -> bool, validate_checksum(path, expected_md5) -> bool, ensure_directory(path) -> None. Uses RAW_DIR and PROCESSED_DIR from config. Simple file-existence-based caching with optional MD5 checksum verification.",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/data/cache.py"
+          ],
+          "patterns_from": [
+            "src/config.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.data.cache import get_cache_path, is_cached, ensure_directory; print('OK')\"",
+            "expected": "OK"
+          },
+          "status": "completed",
+          "notes": "Created src/data/cache.py with four functions: get_cache_path (routes raw PBFs to RAW_DIR, processed files to PROCESSED_DIR), is_cached (file-existence + non-empty check), validate_checksum (streaming MD5 verification), ensure_directory (creates directory trees for files or directories). All functions use pathlib.Path, type hints, and numpy-style docstrings following config.py patterns. Python verification blocked by project sandbox but code manually verified. Committed as 3979633.",
+          "updated_at": "2026-03-13T06:55:25.559846+00:00"
+        },
+        {
+          "id": "subtask-2-2",
+          "description": "Create src/data/downloader.py with function download_pbf(region='kanto', force=False) -> Path. Downloads from GEOFABRIK_REGIONS[region] URL to RAW_DIR. Features: tqdm progress bar, retry logic (3 attempts with exponential backoff), checksum verification via cache.validate_checksum(), skip download if already cached. Uses requests library for HTTP with streaming. Returns path to downloaded PBF file.",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/data/downloader.py"
+          ],
+          "patterns_from": [
+            "src/config.py",
+            "src/data/cache.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.data.downloader import download_pbf; import inspect; sig = inspect.signature(download_pbf); print('OK' if 'region' in sig.parameters else 'FAIL')\"",
+            "expected": "OK"
+          },
+          "status": "completed",
+          "notes": "Created src/data/downloader.py with download_pbf(region='kanto', force=False) -> Path function. Features: streaming HTTP download via requests, tqdm progress bar with byte-level tracking, 3-attempt retry with exponential backoff (2^attempt seconds), cache integration via is_cached/get_cache_path/ensure_directory from src.data.cache, ValueError for unknown regions, RuntimeError after exhausted retries, atomic partial-file handling (.part suffix with cleanup on failure), fetch_md5() helper for Geofabrik checksum retrieval. Follows codebase patterns: numpy-style docstrings, section comments, pathlib.Path, type hints, logging (no print statements). Python verification cannot run in sandbox but code manually verified against spec. Committed as 6beeddf.",
+          "updated_at": "2026-03-13T06:57:29.455645+00:00"
+        },
+        {
+          "id": "subtask-2-3",
+          "description": "Create src/data/parser.py with function parse_road_network(pbf_path, highway_types=None, include_nodes=True) -> tuple[GeoDataFrame, GeoDataFrame] | GeoDataFrame. Uses 'from pyrosm import OSM' to parse PBF. Calls osm.get_network(network_type='driving', nodes=True). Filters edges by highway type using HIGHWAY_FILTER from config. When include_nodes=True, returns (nodes, edges) tuple with only referenced nodes kept. Logs node/edge counts.",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/data/parser.py"
+          ],
+          "patterns_from": [
+            "src/config.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.data.parser import parse_road_network; import inspect; sig = inspect.signature(parse_road_network); print('OK' if 'pbf_path' in sig.parameters and 'highway_types' in sig.parameters else 'FAIL')\"",
+            "expected": "OK"
+          },
+          "status": "completed",
+          "notes": "Created src/data/parser.py with parse_road_network(pbf_path, highway_types=None, include_nodes=True) function. Uses 'from pyrosm import OSM' canonical import, calls osm.get_network(network_type='driving', nodes=True), filters edges by highway type using HIGHWAY_FILTER from config, prunes unreferenced nodes when include_nodes=True, logs raw and filtered node/edge counts. Includes FileNotFoundError for missing PBF files. Follows codebase patterns: numpy-style docstrings, section comments, logging, pathlib.Path, type hints. Python verification cannot run in sandbox but function signature and logic manually verified. Committed as 49b1183.",
+          "updated_at": "2026-03-13T06:59:32.774993+00:00"
+        },
+        {
+          "id": "subtask-2-4",
+          "description": "Create scripts/download_pbf.py CLI script with argparse. Arguments: --region (default='kanto', choices from GEOFABRIK_REGIONS keys), --force (store_true to re-download), --output-dir (optional, default=RAW_DIR). Calls download_pbf() and prints result path. Must be executable from project root: python scripts/download_pbf.py --region kanto",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "scripts/download_pbf.py"
+          ],
+          "patterns_from": [
+            "src/data/downloader.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python scripts/download_pbf.py --help",
+            "expected": "usage:"
+          },
+          "status": "completed",
+          "notes": "Created scripts/download_pbf.py CLI script with argparse. Arguments: --region (default='kanto', choices from sorted GEOFABRIK_REGIONS keys), --force (store_true), --output-dir (optional Path, default=RAW_DIR). Calls download_pbf() from src.data.downloader, configures logging, handles optional custom output directory via shutil.copy2. Prints result path to stdout. Made executable (chmod +x). Follows codebase patterns: module docstring with usage examples, _build_parser() helper, main(argv) with testable signature, if __name__=='__main__' guard. Python verification cannot run in sandbox but script structure manually verified. Committed as 6357894.",
+          "updated_at": "2026-03-13T07:05:00.000000+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-3-network",
+      "name": "Network Construction",
+      "type": "implementation",
+      "description": "Build road network graph from parsed OSM data: highway type filtering, GeoDataFrame-to-NetworkX conversion with speed/capacity/lanes attributes, and graph simplification (node merging, dead-end removal, connectivity enforcement)",
+      "depends_on": [
+        "phase-2-data-pipeline"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "Create src/network/filter.py with functions: filter_by_highway(edges_gdf, highway_types=None) -> GeoDataFrame (filters edges by highway type whitelist, default from HIGHWAY_FILTER), get_default_speed(highway_type) -> float (returns default speed in km/h using DEFAULT_SPEED_BY_TYPE from config), get_default_lanes(highway_type) -> int (returns default lane count using DEFAULT_LANES_BY_TYPE from config). Handle missing/null highway tags gracefully.",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/network/filter.py"
+          ],
+          "patterns_from": [
+            "src/config.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.network.filter import filter_by_highway, get_default_speed, get_default_lanes; assert get_default_speed('motorway') == 100; assert get_default_lanes('motorway') == 4; assert get_default_speed('secondary') == 40; print('OK')\"",
+            "expected": "OK"
+          },
+          "status": "completed",
+          "notes": "Created src/network/filter.py with three functions: filter_by_highway (filters GeoDataFrame edges by highway type whitelist from HIGHWAY_FILTER, handles missing 'highway' column and null values gracefully), get_default_speed (returns default speed in km/h from DEFAULT_SPEED_BY_TYPE with 30.0 fallback), get_default_lanes (returns default lane count from DEFAULT_LANES_BY_TYPE with 1 fallback). Both scalar functions handle None/non-string inputs gracefully. Follows codebase patterns: numpy-style docstrings, section comments, logging, type hints. Python verification cannot run in sandbox but logic manually verified against config values: motorway=100.0/4, secondary=40.0/2. Committed as c5f5102.",
+          "updated_at": "2026-03-13T07:04:08.954962+00:00"
+        },
+        {
+          "id": "subtask-3-2",
+          "description": "Create src/network/builder.py with function build_graph(nodes_gdf, edges_gdf) -> nx.DiGraph. Converts GeoDataFrame nodes/edges to a NetworkX directed graph. Each node gets 'x' (longitude) and 'y' (latitude) attributes from geometry. Each edge gets 'length' (meters, from geometry or OSM length tag), 'speed_kph' (from maxspeed tag or get_default_speed()), 'lanes' (from lanes tag or get_default_lanes()), 'highway' type, and 'geometry' (LineString). Handle MultiLineString geometries by taking the longest segment. Log graph statistics.",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/network/builder.py"
+          ],
+          "patterns_from": [
+            "src/network/filter.py",
+            "src/config.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.network.builder import build_graph; import inspect; sig = inspect.signature(build_graph); print('OK' if 'nodes_gdf' in sig.parameters and 'edges_gdf' in sig.parameters else 'FAIL')\"",
+            "expected": "OK"
+          },
+          "status": "completed",
+          "notes": "Created src/network/builder.py with build_graph(nodes_gdf, edges_gdf) -> nx.DiGraph function. Converts GeoDataFrame nodes/edges to NetworkX DiGraph. Nodes get 'x' (longitude) and 'y' (latitude) from Point geometry. Edges get 'length' (meters, from OSM tag or geometry computation), 'speed_kph' (from maxspeed tag with suffix parsing or get_default_speed fallback), 'lanes' (from lanes tag or get_default_lanes fallback), 'highway' type, and 'geometry' (LineString). Handles MultiLineString by taking longest segment. Includes internal helpers: _parse_maxspeed, _parse_lanes, _resolve_linestring, _compute_length_meters. Logs graph statistics and skipped edges. Follows codebase patterns: numpy-style docstrings, section comments, logging, type hints. Python verification cannot run in sandbox but function signature manually verified. Committed as 163588f.",
+          "updated_at": "2026-03-13T07:06:52.264850+00:00"
+        },
+        {
+          "id": "subtask-3-3",
+          "description": "Create src/network/simplify.py with functions: merge_nearby_nodes(graph, threshold=NODE_MERGE_THRESHOLD) -> nx.DiGraph (merges nodes within threshold degrees, ~50m), remove_dead_ends(graph) -> nx.DiGraph (removes degree-1 nodes iteratively), extract_largest_component(graph) -> nx.DiGraph (extracts largest strongly connected component, logs dropped nodes), simplify_network(graph) -> nx.DiGraph (pipeline: merge → remove dead-ends → extract component). All functions return new graph instances, don't modify input.",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/network/simplify.py"
+          ],
+          "patterns_from": [
+            "src/config.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.network.simplify import merge_nearby_nodes, remove_dead_ends, extract_largest_component, simplify_network; print('OK')\"",
+            "expected": "OK"
+          },
+          "status": "completed",
+          "notes": "Created src/network/simplify.py with four public functions: merge_nearby_nodes (spatial-grid accelerated node merging with Union-Find, centroid repositioning, self-loop removal, default threshold from NODE_MERGE_THRESHOLD), remove_dead_ends (iterative removal of nodes with total degree ≤ 1), extract_largest_component (extracts largest strongly connected component via nx.strongly_connected_components, logs dropped nodes), simplify_network (pipeline: merge → remove dead-ends → extract component). All functions return new nx.DiGraph instances without modifying input. Internal helpers: _spatial_cell grid hashing, _UnionFind with path compression and union-by-rank, _find_merge_groups for cluster detection. Follows codebase patterns: numpy-style docstrings, section comments, logging, type hints. Python verification cannot run in sandbox but all imports and logic manually verified. Committed as ba9ef35.",
+          "updated_at": "2026-03-13T07:12:00.000000+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-4-simulation",
+      "name": "Simulation Engine",
+      "type": "implementation",
+      "description": "Build UXsim simulation layer: World factory from NetworkX graph with coordinate transformation, OD demand generation using adddemand_area2area, simulation execution with result serialization",
+      "depends_on": [
+        "phase-3-network"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "Create src/simulation/world.py with function create_world(graph, deltan=DEFAULT_DELTAN, tmax=DEFAULT_TMAX, name='japan_traffic', random_seed=0) -> World. Creates UXsim World object from NetworkX graph. Adds all nodes with coordinates transformed by COEF_DEGREE_TO_METER (x=lon*coef, y=lat*coef). Adds all edges as links with length, free_flow_speed (speed_kph/3.6), number_of_lanes from graph attrs. Sets show_mode=0, save_mode=1, print_mode=1. Handles missing attributes with sensible defaults.",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/simulation/world.py"
+          ],
+          "patterns_from": [
+            "src/config.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.simulation.world import create_world; import inspect; sig = inspect.signature(create_world); params = list(sig.parameters.keys()); print('OK' if 'graph' in params and 'deltan' in params and 'tmax' in params else 'FAIL')\"",
+            "expected": "OK"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-4-2",
+          "description": "Create src/simulation/demand.py with functions: add_area_demand(W, origin_lon, origin_lat, dest_lon, dest_lat, t_start=0, t_end=3600, volume=5000, radius_deg=0.05) -> None (wrapper for adddemand_area2area with coordinate conversion), generate_default_demands(W, region='tokyo') -> None (adds predefined OD pairs for common regions like Tokyo commuter flows), get_tokyo_od_pairs() -> list[dict] (returns predefined Tokyo-area OD pairs with reasonable volumes). Coordinates converted by COEF_DEGREE_TO_METER.",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/simulation/demand.py"
+          ],
+          "patterns_from": [
+            "src/config.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.simulation.demand import add_area_demand, generate_default_demands; print('OK')\"",
+            "expected": "OK"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-4-3",
+          "description": "Create src/simulation/runner.py with functions: run_simulation(W) -> World (calls W.exec_simulation(), prints stats via W.analyzer.print_simple_stats(), returns World), save_results(W, output_path) -> Path (serializes World results to pickle file in OUTPUT_DIR), load_results(result_path) -> object (loads serialized results). Includes timing/logging for simulation duration.",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/simulation/runner.py"
+          ],
+          "patterns_from": [
+            "src/config.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.simulation.runner import run_simulation, save_results, load_results; print('OK')\"",
+            "expected": "OK"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-4-4",
+          "description": "Create scripts/run_simulation.py CLI script. Arguments: --region (default='kanto'), --deltan (int, default=10), --tmax (int, default=7200), --output (Path, default=OUTPUT_DIR), --skip-download (store_true, assume PBF exists). Implements full pipeline: download PBF → parse → filter → build graph → simplify → create World → add demand → run simulation → save results. Prints progress at each stage.",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "scripts/run_simulation.py"
+          ],
+          "patterns_from": [
+            "src/data/downloader.py",
+            "src/data/parser.py",
+            "src/network/builder.py",
+            "src/network/simplify.py",
+            "src/simulation/world.py",
+            "src/simulation/demand.py",
+            "src/simulation/runner.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python scripts/run_simulation.py --help",
+            "expected": "usage:"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-5-visualization",
+      "name": "Visualization & Export",
+      "type": "implementation",
+      "description": "Build congestion visualization and export: GeoJSON export with per-segment congestion metrics, static Matplotlib heatmaps, interactive Folium HTML maps, and CLI map generation script",
+      "depends_on": [
+        "phase-4-simulation"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-5-1",
+          "description": "Create src/visualization/export.py with functions: extract_link_congestion(W) -> list[dict] (extracts per-link congestion data from UXsim World results: link name, geometry coords, congestion_level 0.0-1.0, average_speed, volume, free_flow_speed, capacity), to_geojson(congestion_data, output_path) -> Path (writes GeoJSON FeatureCollection with LineString geometries and congestion properties), to_geodataframe(congestion_data) -> GeoDataFrame. Congestion level calculated as 1 - (actual_speed / free_flow_speed), clamped to [0, 1].",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/visualization/export.py"
+          ],
+          "patterns_from": [
+            "src/config.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.visualization.export import extract_link_congestion, to_geojson, to_geodataframe; print('OK')\"",
+            "expected": "OK"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-5-2",
+          "description": "Create src/visualization/congestion_map.py with functions: create_static_map(congestion_gdf, output_path, figsize=(20,20), title='Traffic Congestion') -> Path (Matplotlib figure with road segments colored green→yellow→red by congestion_level, saves PNG), create_interactive_map(congestion_gdf, output_path, center_lat=36.0, center_lon=139.7, zoom_start=10) -> Path (Folium map with colored PolyLines, popup with congestion details, legend, saves HTML), get_congestion_color(level) -> str (maps 0.0-1.0 to green→yellow→red hex color). Apply Shapely simplify() for large datasets (>50k features) to prevent slow rendering.",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/visualization/congestion_map.py"
+          ],
+          "patterns_from": [
+            "src/config.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.visualization.congestion_map import create_static_map, create_interactive_map, get_congestion_color; c = get_congestion_color(0.0); print('OK' if c.startswith('#') else 'FAIL')\"",
+            "expected": "OK"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-5-3",
+          "description": "Create scripts/generate_map.py CLI script. Arguments: --input (Path, required, path to simulation results pickle), --format (choices=['geojson', 'html', 'png', 'all'], default='all'), --output-dir (Path, default=OUTPUT_DIR). Loads results, extracts congestion data, generates requested output formats. Prints paths to generated files.",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "scripts/generate_map.py"
+          ],
+          "patterns_from": [
+            "src/visualization/export.py",
+            "src/visualization/congestion_map.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python scripts/generate_map.py --help",
+            "expected": "usage:"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-6-testing",
+      "name": "Unit & Integration Tests",
+      "type": "implementation",
+      "description": "Build comprehensive test suite with shared fixtures, unit tests for all core modules, and integration tests for the pipeline. Uses small synthetic test data (not real PBF files).",
+      "depends_on": [
+        "phase-5-visualization"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-6-1",
+          "description": "Create tests/conftest.py with shared pytest fixtures: sample_nodes_gdf (small GeoDataFrame with 5-10 test nodes), sample_edges_gdf (small GeoDataFrame with 8-12 test edges with highway types and geometry), sample_networkx_graph (pre-built NetworkX DiGraph matching sample data), tmp_output_dir (temporary directory for test outputs). Create tests/test_data/ directory with any small static test fixtures needed. All fixtures use synthetic data - no real PBF files.",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "tests/conftest.py"
+          ],
+          "patterns_from": [
+            "src/config.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"import tests.conftest; print('OK')\"",
+            "expected": "OK"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-6-2",
+          "description": "Create tests/test_parser.py with tests: test_config_constants (verify COEF_DEGREE_TO_METER=89799, HIGHWAY_FILTER has 8 entries, all 8 Geofabrik regions present), test_filter_by_highway (verify filtering with sample edges), test_get_default_speed_and_lanes (verify defaults match spec). Create tests/test_network_builder.py with tests: test_build_graph (verify node/edge counts from sample GeoDataFrames), test_graph_attributes (verify x, y, length, speed_kph, lanes attributes exist), test_merge_nearby_nodes (verify node count reduction), test_remove_dead_ends (verify dead-end removal), test_extract_largest_component (verify connectivity).",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "tests/test_parser.py",
+            "tests/test_network_builder.py"
+          ],
+          "patterns_from": [
+            "tests/conftest.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -m pytest tests/test_parser.py tests/test_network_builder.py -v --tb=short 2>&1 | tail -5",
+            "expected": "passed"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-6-3",
+          "description": "Create tests/test_simulation.py with tests: test_create_world (verify UXsim World created from sample graph has correct node/link counts), test_coordinates_in_meters (verify node coordinates are multiplied by COEF_DEGREE_TO_METER), test_add_area_demand (verify demand can be added without errors), test_run_small_simulation (run tiny simulation with 3 nodes, 2 links, small demand and verify it completes). Create tests/test_visualization.py with tests: test_congestion_color (verify color mapping 0→green, 0.5→yellow, 1.0→red), test_geojson_export_structure (verify FeatureCollection with LineString features and required properties), test_geojson_properties (verify congestion_level, speed, volume fields exist).",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "tests/test_simulation.py",
+            "tests/test_visualization.py"
+          ],
+          "patterns_from": [
+            "tests/conftest.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -m pytest tests/test_simulation.py tests/test_visualization.py -v --tb=short 2>&1 | tail -5",
+            "expected": "passed"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-7-integration",
+      "name": "Integration & Tokyo Pilot",
+      "type": "integration",
+      "description": "End-to-end integration testing and Tokyo metropolitan area pilot verification. Validate the full pipeline from PBF download through simulation to map output.",
+      "depends_on": [
+        "phase-6-testing"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-7-1",
+          "description": "Create tests/test_integration.py with integration tests that verify the pipeline end-to-end using synthetic data (not real PBF): test_parse_to_build (parsed GeoDataFrame converts to valid NetworkX graph), test_build_to_simulate (constructed graph creates runnable UXsim World that can execute a short simulation), test_simulate_to_export (simulation results serialize to valid GeoJSON with correct structure), test_full_pipeline_synthetic (end-to-end: synthetic network → graph → World → simulate → export). All tests use small synthetic data to run quickly without network access.",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [
+            "tests/test_integration.py"
+          ],
+          "patterns_from": [
+            "tests/conftest.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -m pytest tests/test_integration.py -v --tb=short 2>&1 | tail -5",
+            "expected": "passed"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-7-2",
+          "description": "Final verification: Run the complete test suite with coverage reporting. Ensure all tests pass and coverage exceeds 80% on core src/ modules. Fix any import errors, missing dependencies, or integration issues discovered. Verify all three CLI scripts show correct --help output. Verify pip install -e . works correctly.",
+          "service": "traffic-simulation",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "python -m pytest tests/ -v --cov=src --cov-report=term-missing 2>&1 | tail -20",
+            "expected": "passed"
+          },
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 7,
+    "total_subtasks": 22,
+    "services_involved": [
+      "traffic-simulation"
+    ],
+    "parallelism": {
+      "max_parallel_phases": 1,
+      "parallel_groups": [],
+      "recommended_workers": 1,
+      "speedup_estimate": "No parallelism — single-service sequential pipeline with strict layer dependencies"
+    },
+    "startup_command": "source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 001 --parallel 1"
+  },
+  "verification_strategy": {
+    "risk_level": "high",
+    "skip_validation": false,
+    "test_creation_phase": "phase-6-testing",
+    "test_types_required": [
+      "unit",
+      "integration"
+    ],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "All unit tests pass (test_parser, test_network_builder, test_simulation, test_visualization)",
+      "All integration tests pass (test_integration)",
+      "Code coverage >80% on src/ modules",
+      "All three CLI scripts (download_pbf, run_simulation, generate_map) show correct --help output",
+      "pip install -e . succeeds without errors",
+      "No import errors across all modules",
+      "Config constants match spec values (COEF=89799, FILTER=8 types, REGIONS>=8)",
+      "GeoJSON export produces valid FeatureCollection with congestion metrics"
+    ],
+    "verification_steps": [
+      {
+        "name": "Unit Tests",
+        "command": "python -m pytest tests/test_parser.py tests/test_network_builder.py tests/test_simulation.py tests/test_visualization.py -v",
+        "expected_outcome": "All tests pass",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Integration Tests",
+        "command": "python -m pytest tests/test_integration.py -v",
+        "expected_outcome": "All integration tests pass",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Coverage Report",
+        "command": "python -m pytest tests/ -v --cov=src --cov-report=term-missing",
+        "expected_outcome": "Coverage >80% on core modules",
+        "type": "test",
+        "required": true,
+        "blocking": false
+      },
+      {
+        "name": "Package Install",
+        "command": "pip install -e '.[dev]'",
+        "expected_outcome": "Installation succeeds without errors",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "CLI Scripts Help",
+        "command": "python scripts/download_pbf.py --help && python scripts/run_simulation.py --help && python scripts/generate_map.py --help",
+        "expected_outcome": "All scripts show usage information",
+        "type": "test",
+        "required": true,
+        "blocking": false
+      }
+    ],
+    "reasoning": "High-risk greenfield project with multiple interacting subsystems (data ingestion, graph construction, simulation, visualization). Requires comprehensive unit tests for each module and integration tests to verify the pipeline end-to-end. E2E with real PBF data deferred to manual testing (requires ~100MB+ downloads). No security-sensitive operations."
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": true,
+      "commands": [
+        "python -m pytest tests/test_parser.py tests/test_network_builder.py tests/test_simulation.py tests/test_visualization.py -v"
+      ],
+      "minimum_coverage": 80
+    },
+    "integration_tests": {
+      "required": true,
+      "commands": [
+        "python -m pytest tests/test_integration.py -v"
+      ],
+      "services_to_test": [
+        "traffic-simulation"
+      ]
+    },
+    "e2e_tests": {
+      "required": false,
+      "commands": [],
+      "flows": [
+        "Tokyo pilot end-to-end with real Kanto PBF (manual, requires download)"
+      ]
+    },
+    "browser_verification": {
+      "required": false,
+      "pages": []
+    },
+    "database_verification": {
+      "required": false,
+      "checks": []
+    },
+    "cli_verification": {
+      "required": true,
+      "scripts": [
+        {
+          "command": "python scripts/download_pbf.py --help",
+          "checks": [
+            "shows usage with --region argument"
+          ]
+        },
+        {
+          "command": "python scripts/run_simulation.py --help",
+          "checks": [
+            "shows usage with --region, --deltan, --tmax arguments"
+          ]
+        },
+        {
+          "command": "python scripts/generate_map.py --help",
+          "checks": [
+            "shows usage with --input, --format arguments"
+          ]
+        }
+      ]
+    }
+  },
+  "qa_signoff": null,
+  "status": "in_progress",
+  "planStatus": "in_progress",
+  "xstateState": "coding",
+  "executionPhase": "coding",
+  "updated_at": "2026-03-13T07:07:26.511Z",
+  "lastEvent": {
+    "eventId": "d05d9887-95b9-467f-9a89-afe728fc86ef",
+    "sequence": 0,
+    "type": "PLANNING_COMPLETE",
+    "timestamp": "2026-03-13T06:47:27.904560+00:00"
+  },
+  "last_updated": "2026-03-13T07:06:52.264860+00:00"
+}
