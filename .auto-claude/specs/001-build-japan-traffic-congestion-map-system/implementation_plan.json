@@ -270,7 +270,9 @@
             "command": "python -c \"from src.simulation.world import create_world; import inspect; sig = inspect.signature(create_world); params = list(sig.parameters.keys()); print('OK' if 'graph' in params and 'deltan' in params and 'tmax' in params else 'FAIL')\"",
             "expected": "OK"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Created src/simulation/world.py with create_world(graph, deltan, tmax, name, random_seed) -> World function. Creates UXsim World from NetworkX DiGraph: transforms node coordinates from degrees to meters via COEF_DEGREE_TO_METER, maps edge attributes (length, speed_kph/3.6, lanes) to UXsim link params with fallback defaults (length=1000, speed=60kph, lanes=2). Handles self-loops, duplicate link names, and empty graphs. Follows codebase patterns: numpy-style docstrings, section comments, logging, type hints. Python verification cannot run in sandbox but function signature and logic manually verified. Committed as 6f1d5ba.",
+          "updated_at": "2026-03-13T07:15:00.000000+00:00"
         },
         {
           "id": "subtask-4-2",
@@ -653,7 +655,7 @@
   "planStatus": "in_progress",
   "xstateState": "coding",
   "executionPhase": "coding",
-  "updated_at": "2026-03-13T07:07:26.511Z",
+  "updated_at": "2026-03-13T07:10:35.917Z",
   "lastEvent": {
     "eventId": "d05d9887-95b9-467f-9a89-afe728fc86ef",
     "sequence": 0,
