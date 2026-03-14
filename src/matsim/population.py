@@ -141,7 +141,20 @@ def generate_population(
 
     # Get population centers
     region_lower = region.lower()
-    centers = REGION_CENTERS.get(region_lower, REGION_CENTERS.get("kanto"))
+    if region_lower == "japan":
+        # All-Japan: merge all regions with relative population weights
+        region_weights = {
+            "kanto": 0.35, "kansai": 0.18, "chubu": 0.12,
+            "kyushu": 0.10, "hokkaido": 0.05, "tohoku": 0.07,
+            "chugoku": 0.05, "shikoku": 0.03, "okinawa": 0.01,
+        }
+        centers = []
+        for rname, rweight in region_weights.items():
+            rcenters = REGION_CENTERS.get(rname, [])
+            for c in rcenters:
+                centers.append({**c, "pop_weight": c["pop_weight"] * rweight})
+    else:
+        centers = REGION_CENTERS.get(region_lower, REGION_CENTERS.get("kanto"))
 
     # Normalize weights
     total_weight = sum(c["pop_weight"] for c in centers)
