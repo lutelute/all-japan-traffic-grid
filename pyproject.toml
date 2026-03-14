@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=69.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "all-japan-traffic-grid"
+version = "0.1.0"
+description = "Japan-wide traffic congestion simulation and visualization system using UXsim and OpenStreetMap data"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+authors = [
+    {name = "Project Hayashi"},
+]
+
+dependencies = [
+    "uxsim>=1.12.0",
+    "pyrosm>=0.6.2",
+    "osmnx>=2.1.0",
+    "geopandas>=1.0.0",
+    "networkx>=3.0",
+    "matplotlib>=3.8",
+    "folium>=0.15",
+    "shapely>=2.0",
+    "requests>=2.31",
+    "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.3",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80

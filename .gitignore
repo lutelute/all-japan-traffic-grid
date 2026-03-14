@@ -1,0 +1,43 @@
+# Auto Claude data directory
+.auto-claude/
+
+# Data directories (large files, not tracked)
+data/raw/
+data/processed/
+data/output/
+
+# Large binary files
+*.pbf
+*.pkl
+
+# Python virtual environment
+.venv/
+
+# UXsim simulation output directories (created during tests)
+out*/
+
+# Matplotlib cache
+matplotlib-*/
+
+# Pytest cache and temp directories
+.pytest_cache/
+pytest-of-*/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
