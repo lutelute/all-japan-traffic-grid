@@ -20,6 +20,9 @@ web/data/
 # UXsim simulation output directories (created during tests)
 out*/
 
+# But keep visualize/output/ for GitHub Pages
+!visualize/output/
+
 # Matplotlib cache
 matplotlib-*/
 

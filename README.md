@@ -7,164 +7,104 @@
 ╚═╝  ╚═╝ ╚════╝    ╚═╝    ╚═════╝
 ```
 
-# All-Japan Traffic Grid
+# All-Japan Traffic Grid Simulation
 
-日本全国の道路交通ネットワークシミュレーション・可視化システム。
-OpenStreetMap から道路網を抽出し、メソスコピック（UXsim）およびマイクロスコピック（MATSim）の交通シミュレーションを実行。
+UXsim-based mesoscopic traffic simulation covering 9 regions of Japan, with animated 24-hour visualization on interactive Folium/Leaflet maps.
 
-## 姉妹プロジェクト
+> 日本全国9地域の道路交通メソスコピックシミュレーション。24時間アニメーション付きインタラクティブ地図で可視化。
 
-| プロジェクト | インフラ | データソース | リポジトリ |
-|---|---|---|---|
-| **All-Japan-Grid** | 送電網（変電所・送電線・発電所） | OpenStreetMap | [lutelute/All-Japan-Grid](https://github.com/lutelute/All-Japan-Grid) |
-| **All-Japan Traffic Grid** | 道路交通網（道路・信号・エージェント） | OpenStreetMap | 本リポジトリ |
+![24h Traffic Simulation Demo](visualize/output/demo.gif)
 
-両プロジェクトはOSMを共通データソースとして、日本の社会インフラを地理的トポロジとして機械抽出・シミュレーションする取り組みです。
+*24-hour traffic simulation across 9 regions of Japan (111,027 road links). Colors indicate speed relative to free-flow: green = free flow, red = congested.*
 
 ---
 
-## 機能
+## Visualizations (`visualize/`)
 
-### 1. 道路ネットワーク構築
-- Geofabrik PBF / Overpass API からOSM道路データを取得
-- 高速道路〜県道（motorway〜secondary）をフィルタリング
-- NetworkX有向グラフへ変換（速度・車線数・道路種別）
+| Script | Output | Description |
+|--------|--------|-------------|
+| `japan_road_network.py` | Static HTML map | Road network visualization using Folium. Renders OSM-extracted road segments by type (高速道路〜県道). |
+| `japan_traffic_heatmap.py` | Heatmap HTML | Traffic density heatmap built from OpenStreetMap road data. |
+| `japan_traffic_uxsim.py` | Static HTML map | UXsim simulation results rendered as a static congestion map. |
+| `japan_traffic_animated.py` | Animated HTML | **Main output.** 24-hour animated simulation with per-region toggle checkboxes. Time-slider controls playback across all 9 regions. |
 
-### 2. UXsim 交通シミュレーション（メソスコピック）
-- プラトーン単位のメソスコピックシミュレーション
-- 日本全国9地域対応
-- Folium（インタラクティブHTML）/ Matplotlib（静的PNG）で可視化
-
-### 3. MATSim マルチエージェントシミュレーション
-- 個別エージェント単位のマイクロスコピックシミュレーション
-- OSM信号データの抽出・反映
-- 合成人口生成（home-work-home活動チェーン）
-- 日本全国9都市圏の分割パイプライン（順次実行でメモリ制約回避）
-- 65,000エージェント規模で動作確認済み
-
-### 4. SimCity風 Web可視化
-- deck.gl + MapLibre GL によるダークテーマ3Dマップ
-- エージェントのリアルタイムアニメーション
-- 渋滞ヒートマップオーバーレイ
-- タイムラインスライダー（0.5x〜60x再生速度）
+All outputs are written to `visualize/output/`.
 
 ---
 
-## クイックスタート
+## Quick Start
 
-### 前提条件
-- Python 3.11+
-- Java 21+（MATSimを使う場合）
+### 1. Set up environment
 
-### インストール
 ```bash
-pip install -e .
+cd visualize
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r ../requirements.txt
 ```
 
-### UXsim シミュレーション
+### 2. Run a visualization
+
 ```bash
-python scripts/run_simulation.py --region kanto
-python scripts/generate_map.py
+# Animated 24h simulation (main visualization / メインの可視化)
+python japan_traffic_animated.py
+
+# Static road network map
+python japan_road_network.py
+
+# Traffic density heatmap
+python japan_traffic_heatmap.py
+
+# Static UXsim results
+python japan_traffic_uxsim.py
 ```
 
-### MATSim シミュレーション
-```bash
-# 単一地域
-python scripts/run_matsim.py --region kanto --agents 10000 --iterations 5
+Outputs are saved to `visualize/output/`. Open the `.html` files in a browser.
 
-# 日本全国（分割実行）
-python scripts/run_partitioned.py --preset japan --agents-multiplier 10
+---
 
-# Web可視化
-cp data/output/matsim_partitioned/viz/* web/data/
-python -m http.server 8080 --directory web
+## Tech Stack
+
+- **Python 3.14**
+- **UXsim** -- mesoscopic traffic simulation (platoon-based)
+- **osmnx** -- OpenStreetMap road network extraction
+- **Folium / Leaflet** -- interactive map rendering
+- **NetworkX** -- graph construction and analysis
+
+---
+
+## Related Project
+
+[`japan-traffic-flow-data`](../japan-traffic-flow-data/) -- Traffic flow data platform for integrating real observed data (交通量常時観測データ) into the simulation pipeline.
+
+---
+
+## Project Structure
+
 ```
+visualize/
+├── japan_road_network.py      # Static road network map (Folium)
+├── japan_traffic_heatmap.py   # Traffic density heatmap from OSM
+├── japan_traffic_uxsim.py     # Static UXsim simulation results
+├── japan_traffic_animated.py  # 24h animated simulation (main)
+└── output/                    # Generated HTML visualizations
+    ├── index.html             # Portal page (GitHub Pages top)
+    ├── japan_traffic_animated.html
+    ├── japan_traffic_heatmap.html
+    ├── japan_traffic_uxsim.html
+    └── ...
 
-### デモ（MATSim不要）
-```bash
-python scripts/generate_demo_data.py --agents 2000
-python -m http.server 8080 --directory web
+src/                           # Core library (network, simulation, viz)
+scripts/                       # CLI entry points
+web/                           # SimCity-style deck.gl viewer (MATSim)
 ```
 
 ---
 
-## プロジェクト構成
-
-```
-src/
-├── config.py              # グローバル設定（道路属性、地域URL）
-├── data/                  # OSMデータ取得・パース
-│   ├── downloader.py      #   Geofabrik PBFダウンロード
-│   ├── parser.py          #   Pyrosmパース・フィルタ
-│   └── cache.py           #   キャッシュ管理
-├── network/               # ネットワーク構築
-│   ├── builder.py         #   GeoDataFrame → NetworkX
-│   ├── filter.py          #   道路種別フィルタ・デフォルト値
-│   └── simplify.py        #   ノード統合・死端除去
-├── simulation/            # UXsimシミュレーション
-│   ├── world.py           #   NetworkX → UXsim World
-│   ├── demand.py          #   OD需要生成
-│   └── runner.py          #   シミュレーション実行
-├── visualization/         # UXsim結果可視化
-│   ├── export.py          #   GeoJSON/GeoDataFrameエクスポート
-│   └── congestion_map.py  #   Folium/Matplotlib地図生成
-└── matsim/                # MATSimシミュレーション
-    ├── network_converter.py  # NetworkX → network.xml
-    ├── signal_extractor.py   # OSM信号 → 信号XML
-    ├── population.py         # 合成人口 → plans.xml
-    ├── config_generator.py   # config.xml生成
-    ├── java_manager.py       # MATSim JAR管理
-    ├── runner.py             # MATSim実行
-    ├── event_parser.py       # events.xml → 可視化JSON
-    ├── pipeline.py           # 単一地域パイプライン
-    └── partitioned.py        # 分割パイプライン
-
-scripts/
-├── run_simulation.py      # UXsimパイプライン実行
-├── generate_map.py        # UXsim結果の地図生成
-├── run_matsim.py          # MATSim単一地域実行
-├── run_partitioned.py     # MATSim分割実行
-└── generate_demo_data.py  # デモデータ生成
-
-web/                       # SimCity風Web UI
-├── index.html
-├── css/style.css
-└── js/
-    ├── app.js             # メインコントローラ
-    ├── layers.js           # deck.glレイヤー管理
-    ├── timeline.js         # タイムライン制御
-    ├── stats.js            # 統計パネル
-    └── data-loader.js      # データ読み込み
-```
-
----
-
-## アーキテクチャ
-
-```
-OpenStreetMap (Geofabrik / Overpass API)
-              │
-              ▼
-    OSMデータ取得・パース (src/data/)
-              │
-              ▼
-    NetworkX DiGraph (src/network/)
-              │
-     ┌────────┴────────┐
-     ▼                 ▼
-  UXsim             MATSim
-  (メソスコピック)      (マイクロスコピック)
-     │                 │
-     ▼                 ▼
-  Folium/PNG      deck.gl Web UI
-```
-
----
-
-## ライセンス
+## License
 
 MIT
 
-## データソース
+## Data Source
 
-道路ネットワークデータは [OpenStreetMap](https://www.openstreetmap.org/) から取得しています（© OpenStreetMap contributors, ODbL）。
+Road network data from [OpenStreetMap](https://www.openstreetmap.org/) (© OpenStreetMap contributors, ODbL).
