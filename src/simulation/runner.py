@@ -8,6 +8,7 @@ Timing and logging are integrated so that simulation duration is
 reported automatically.
 """
 
+import collections
 import logging
 import pickle
 import time
@@ -89,6 +90,49 @@ def run_simulation(W: World) -> World:
     return W
 
 
+def _patch_unpicklable_defaultdicts(
+    obj: object,
+    _visited: set | None = None,
+) -> list[tuple[object, str, collections.defaultdict]]:
+    """Recursively replace unpicklable defaultdicts with plain dicts.
+
+    Returns a list of (owner, attr_name, original_defaultdict) tuples
+    so that :func:`_restore_defaultdicts` can undo the changes.
+    """
+    if _visited is None:
+        _visited = set()
+
+    obj_id = id(obj)
+    if obj_id in _visited:
+        return []
+    _visited.add(obj_id)
+
+    patches: list[tuple[object, str, collections.defaultdict]] = []
+
+    for attr_name in list(vars(obj)):
+        val = getattr(obj, attr_name, None)
+        if isinstance(val, collections.defaultdict):
+            factory = val.default_factory
+            if factory is not None:
+                try:
+                    pickle.dumps(factory)
+                except (pickle.PicklingError, TypeError, AttributeError):
+                    patches.append((obj, attr_name, val))
+                    setattr(obj, attr_name, dict(val))
+        elif hasattr(val, "__dict__") and not isinstance(val, type):
+            patches.extend(_patch_unpicklable_defaultdicts(val, _visited))
+
+    return patches
+
+
+def _restore_defaultdicts(
+    patches: list[tuple[object, str, collections.defaultdict]],
+) -> None:
+    """Restore defaultdicts that were replaced by :func:`_patch_unpicklable_defaultdicts`."""
+    for owner, attr_name, original in patches:
+        setattr(owner, attr_name, original)
+
+
 def save_results(W: World, output_path: str | Path | None = None) -> Path:
     """Serialize simulation results to a pickle file.
 
@@ -119,8 +163,18 @@ def save_results(W: World, output_path: str | Path | None = None) -> Path:
     # Ensure the parent directory exists
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(output_path, "wb") as fh:
-        pickle.dump(W, fh, protocol=pickle.HIGHEST_PROTOCOL)
+    # UXsim World objects may contain defaultdict attributes whose
+    # factory is a local lambda (e.g. Q_AREA in finalize_scenario,
+    # od_trips in Analyzer).  Lambdas are not picklable with the
+    # standard pickle module.  We temporarily replace such defaultdicts
+    # with plain dicts for serialization, then restore them.
+    patches = _patch_unpicklable_defaultdicts(W)
+
+    try:
+        with open(output_path, "wb") as fh:
+            pickle.dump(W, fh, protocol=pickle.HIGHEST_PROTOCOL)
+    finally:
+        _restore_defaultdicts(patches)
 
     file_size_mb = output_path.stat().st_size / (1024 * 1024)
     logger.info(

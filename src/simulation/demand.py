@@ -36,7 +36,7 @@ def add_area_demand(
 ) -> None:
     """Add area-to-area demand using geographic coordinates.
 
-    Wraps :meth:`uxsim.World.adddemand_area2area`, converting longitude/
+    Wraps :meth:`uxsim.World.adddemand_area2area2`, converting longitude/
     latitude in degrees to the metre-based coordinate system used internally
     by the UXsim World.
 
@@ -79,16 +79,16 @@ def add_area_demand(
 
     zone_radius = radius_deg * COEF_DEGREE_TO_METER
 
-    W.adddemand_area2area(
-        origin_lon * COEF_DEGREE_TO_METER,  # ox
-        origin_lat * COEF_DEGREE_TO_METER,  # oy
-        zone_radius,                         # oz (origin zone radius)
-        dest_lon * COEF_DEGREE_TO_METER,     # dx
-        dest_lat * COEF_DEGREE_TO_METER,     # dy
-        zone_radius,                         # dz (dest zone radius)
-        t_start,
-        t_end,
-        volume,
+    W.adddemand_area2area2(
+        x_orig=origin_lon * COEF_DEGREE_TO_METER,
+        y_orig=origin_lat * COEF_DEGREE_TO_METER,
+        radious_orig=zone_radius,
+        x_dest=dest_lon * COEF_DEGREE_TO_METER,
+        y_dest=dest_lat * COEF_DEGREE_TO_METER,
+        radious_dest=zone_radius,
+        t_start=t_start,
+        t_end=t_end,
+        volume=volume,
     )
 
     logger.debug(

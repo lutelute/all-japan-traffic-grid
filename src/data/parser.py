@@ -9,7 +9,6 @@ import logging
 from pathlib import Path
 
 import geopandas as gpd
-from pyrosm import OSM
 
 from src.config import HIGHWAY_FILTER
 
@@ -64,6 +63,14 @@ def parse_road_network(
 
     if highway_types is None:
         highway_types = HIGHWAY_FILTER
+
+    try:
+        from pyrosm import OSM
+    except ImportError as exc:
+        raise ImportError(
+            "pyrosm is required for PBF parsing. "
+            "Install it with: pip install pyrosm>=0.6.2"
+        ) from exc
 
     logger.info("Parsing PBF: %s", pbf_path)
     osm = OSM(str(pbf_path))

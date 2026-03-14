@@ -13,6 +13,16 @@ data/output/
 # Python virtual environment
 .venv/
 
+# UXsim simulation output directories (created during tests)
+out*/
+
+# Matplotlib cache
+matplotlib-*/
+
+# Pytest cache and temp directories
+.pytest_cache/
+pytest-of-*/
+
 # Python bytecode
 __pycache__/
 *.py[cod]
