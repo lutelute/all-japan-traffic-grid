@@ -86,3 +86,26 @@ DEFAULT_LANES_BY_TYPE: dict[str, int] = {
     "secondary": 2,
     "secondary_link": 1,
 }
+
+# ---------------------------------------------------------------------------
+# MATSim configuration
+# ---------------------------------------------------------------------------
+MATSIM_VERSION: str = "15.0"
+MATSIM_JAR_DIR: Path = DATA_DIR / "matsim"
+
+# Capacity per lane (vehicles/hour) by highway type — for MATSim links
+DEFAULT_CAPACITY_PER_LANE: dict[str, int] = {
+    "motorway": 2000,
+    "motorway_link": 1500,
+    "trunk": 1500,
+    "trunk_link": 1200,
+    "primary": 1200,
+    "primary_link": 1000,
+    "secondary": 800,
+    "secondary_link": 600,
+}
+
+# Default signal cycle parameters
+DEFAULT_SIGNAL_CYCLE_TIME: int = 90  # seconds
+DEFAULT_SIGNAL_GREEN_SPLIT: float = 0.45  # fraction of cycle for each phase
+DEFAULT_SIGNAL_AMBER_TIME: int = 3  # seconds

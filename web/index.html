@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Japan Traffic SimCity - MATSim Visualization</title>
+
+    <!-- MapLibre GL JS -->
+    <script src="https://unpkg.com/maplibre-gl@4.1.2/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@4.1.2/dist/maplibre-gl.css" rel="stylesheet" />
+
+    <!-- deck.gl -->
+    <script src="https://unpkg.com/deck.gl@9.0.16/dist.min.js"></script>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Map container -->
+        <div id="map-container"></div>
+
+        <!-- Header -->
+        <div id="header">
+            <h1>🚗 Japan Traffic SimCity</h1>
+            <span class="subtitle">MATSim Multi-Agent Simulation</span>
+        </div>
+
+        <!-- Stats panel -->
+        <div id="stats-panel">
+            <div class="stat-item">
+                <span class="stat-label">時刻</span>
+                <span id="current-time" class="stat-value">--:--</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">走行車両</span>
+                <span id="active-vehicles" class="stat-value">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">平均速度</span>
+                <span id="avg-speed" class="stat-value">-- km/h</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">渋滞指数</span>
+                <span id="congestion-index" class="stat-value">--</span>
+            </div>
+        </div>
+
+        <!-- Timeline control -->
+        <div id="timeline-panel">
+            <div id="timeline-controls">
+                <button id="btn-play" class="control-btn" title="再生/停止">▶</button>
+                <button id="btn-speed-down" class="control-btn" title="減速">◀◀</button>
+                <span id="speed-display">1x</span>
+                <button id="btn-speed-up" class="control-btn" title="加速">▶▶</button>
+            </div>
+            <div id="timeline-slider-container">
+                <input type="range" id="timeline-slider" min="0" max="86400" value="25200" step="60">
+                <div id="time-labels">
+                    <span>00:00</span>
+                    <span>06:00</span>
+                    <span>12:00</span>
+                    <span>18:00</span>
+                    <span>24:00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Region selector -->
+        <div id="region-panel">
+            <select id="region-select">
+                <option value="japan">全国</option>
+                <option value="kanto" selected>関東</option>
+                <option value="kansai">関西</option>
+                <option value="chubu">中部</option>
+                <option value="hokkaido">北海道</option>
+                <option value="tohoku">東北</option>
+                <option value="chugoku">中国</option>
+                <option value="shikoku">四国</option>
+                <option value="kyushu">九州</option>
+            </select>
+        </div>
+
+        <!-- Layer toggles -->
+        <div id="layer-panel">
+            <label><input type="checkbox" id="layer-trips" checked> 車両</label>
+            <label><input type="checkbox" id="layer-network" checked> 道路網</label>
+            <label><input type="checkbox" id="layer-signals"> 信号</label>
+            <label><input type="checkbox" id="layer-heatmap"> ヒートマップ</label>
+        </div>
+
+        <!-- Legend -->
+        <div id="legend">
+            <div class="legend-title">渋滞レベル</div>
+            <div class="legend-gradient"></div>
+            <div class="legend-labels">
+                <span>順調</span>
+                <span>混雑</span>
+                <span>渋滞</span>
+            </div>
+        </div>
+
+        <!-- Data loading overlay -->
+        <div id="loading-overlay">
+            <div id="loading-content">
+                <div class="spinner"></div>
+                <p id="loading-text">データを読み込み中...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data-loader.js"></script>
+    <script src="js/timeline.js"></script>
+    <script src="js/layers.js"></script>
+    <script src="js/stats.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
