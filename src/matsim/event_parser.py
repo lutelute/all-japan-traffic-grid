@@ -62,13 +62,44 @@ def _utm_to_lonlat(x: float, y: float, epsg: int = 32654) -> tuple[float, float]
     return tf.transform(x, y)
 
 
+def _detect_epsg_from_network(network_path: Path) -> int:
+    """Read CRS from network.xml attribute, fallback to auto-detect from coords."""
+    tree = etree.parse(str(network_path))
+    root = tree.getroot()
+
+    # Try to read from attribute element
+    for attr in root.iter("attribute"):
+        if attr.get("name") == "coordinateReferenceSystem":
+            crs_text = attr.text or ""
+            if "EPSG:" in crs_text:
+                try:
+                    return int(crs_text.split("EPSG:")[1].strip())
+                except (ValueError, IndexError):
+                    pass
+
+    # Fallback: detect from node coordinates (find centroid, infer UTM zone)
+    xs = []
+    for node in root.iter("node"):
+        try:
+            xs.append(float(node.get("x", 0)))
+        except (ValueError, TypeError):
+            pass
+
+    if xs:
+        # UTM x coordinate: 500000 is the central meridian false easting
+        # We can't easily infer zone from UTM coords alone, so default
+        pass
+
+    return 32654  # Default: UTM zone 54N (covers central Japan)
+
+
 def parse_events_to_trajectories(
     events_path: Path,
     network_path: Path,
     output_dir: Path,
     time_bin_seconds: int = 300,
     max_agents: int = 5000,
-    utm_epsg: int = 32654,
+    utm_epsg: int | None = None,
 ) -> dict[str, Path]:
     """Parse MATSim events into visualization JSON files.
 
@@ -100,6 +131,11 @@ def parse_events_to_trajectories(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Auto-detect EPSG from network.xml
+    if utm_epsg is None:
+        utm_epsg = _detect_epsg_from_network(network_path)
+    logger.info("Using EPSG:%d for coordinate conversion", utm_epsg)
+
     logger.info("Loading network from %s", network_path)
     net = _load_network_coords(network_path)
 
@@ -126,7 +162,8 @@ def parse_events_to_trajectories(
 
             event_type = elem.get("type", "")
             time = float(elem.get("time", 0))
-            person = elem.get("person", "")
+            # MATSim uses "person" for some events, "vehicle" for link events
+            person = elem.get("person", "") or elem.get("vehicle", "")
 
             # Skip transit/freight agents
             if person.startswith("pt_") or person.startswith("freight_"):

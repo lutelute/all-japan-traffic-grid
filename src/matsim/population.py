@@ -13,7 +13,6 @@ import networkx as nx
 from lxml import etree
 
 from src.matsim.network_converter import get_node_coords
-from src.simulation.demand import get_tokyo_od_pairs
 
 logger = logging.getLogger(__name__)
 

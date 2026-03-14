@@ -47,16 +47,21 @@ def run_matsim(
     if working_dir is None:
         working_dir = config_path.parent
 
-    # Build classpath - include all JARs in the matsim dir
+    # Build classpath - include main JAR + all JARs in libs/
     jar_dir = matsim_jar.parent
-    all_jars = list(jar_dir.glob("*.jar"))
+    all_jars = [matsim_jar]
+    libs_dir = jar_dir / "libs"
+    if libs_dir.is_dir():
+        all_jars.extend(libs_dir.glob("*.jar"))
+    else:
+        all_jars.extend(jar_dir.glob("*.jar"))
     classpath = ":".join(str(j) for j in all_jars)
 
     cmd = [
         java_path,
         f"-Xmx{jvm_memory}",
         "-cp", classpath,
-        "org.matsim.run.Controler",
+        "org.matsim.core.controler.Controler",
         str(config_path.resolve()),
     ]
 

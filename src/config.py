@@ -90,7 +90,7 @@ DEFAULT_LANES_BY_TYPE: dict[str, int] = {
 # ---------------------------------------------------------------------------
 # MATSim configuration
 # ---------------------------------------------------------------------------
-MATSIM_VERSION: str = "15.0"
+MATSIM_VERSION: str = "2025.0"
 MATSIM_JAR_DIR: Path = DATA_DIR / "matsim"
 
 # Capacity per lane (vehicles/hour) by highway type — for MATSim links

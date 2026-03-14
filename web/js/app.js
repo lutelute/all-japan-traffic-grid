@@ -27,15 +27,20 @@ class App {
 
     async _init() {
         // Initialize deck.gl with MapLibre base map
+        const initialViewState = {
+            longitude: REGION_VIEWS.kanto.center[0],
+            latitude: REGION_VIEWS.kanto.center[1],
+            zoom: REGION_VIEWS.kanto.zoom,
+            pitch: 45,
+            bearing: -15,
+            maxPitch: 60,
+        };
+
         this.deckgl = new deck.DeckGL({
             container: 'map-container',
+            mapLib: maplibregl,
             mapStyle: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-            initialViewState: {
-                ...REGION_VIEWS.kanto,
-                pitch: 45,
-                bearing: -15,
-                maxPitch: 60,
-            },
+            initialViewState: initialViewState,
             controller: true,
             layers: [],
             getTooltip: ({ object }) => {
@@ -74,7 +79,9 @@ class App {
             if (view) {
                 this.deckgl.setProps({
                     initialViewState: {
-                        ...view,
+                        longitude: view.center[0],
+                        latitude: view.center[1],
+                        zoom: view.zoom,
                         pitch: 45,
                         bearing: -15,
                         transitionDuration: 1000,

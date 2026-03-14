@@ -74,7 +74,15 @@ def ensure_matsim_jar(version: str = MATSIM_VERSION) -> Path:
     jar_dir = MATSIM_JAR_DIR
     jar_dir.mkdir(parents=True, exist_ok=True)
 
-    # Look for existing JAR
+    # Look for extracted release directory (e.g. matsim-2025.0/)
+    release_dir = jar_dir / f"matsim-{version}"
+    if release_dir.is_dir():
+        main_jar = release_dir / f"matsim-{version}.jar"
+        if main_jar.is_file():
+            logger.info("Found existing MATSim JAR: %s", main_jar)
+            return main_jar
+
+    # Look for existing JAR directly in jar_dir
     jar_pattern = f"matsim-{version}*.jar"
     existing = list(jar_dir.glob(jar_pattern))
     if existing:
